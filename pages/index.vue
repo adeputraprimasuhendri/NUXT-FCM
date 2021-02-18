@@ -1,18 +1,12 @@
 <template>
-  <div class="container">
-    <div>
+  <div class="container text-center">
+    <div class="mt-5">
       <Logo />
-      <h1 class="title">
-        nuxt-fcm
+      <h1 class="title p-5">
+        NUXT Firebase Cloud Messaging
       </h1>
-      <div class="links">
-        <a href="https://nuxtjs.org/" target="_blank" rel="noopener noreferrer" class="button--green">
-          Documentation
-        </a>
-        <a href="https://github.com/nuxt/nuxt.js" target="_blank" rel="noopener noreferrer" class="button--grey">
-          GitHub
-        </a>
-      </div>
+      <b-button variant="danger" :disabled="listenersStarted" @click="startListeners"><span class="font-size">Run FCM Service</span></b-button>
+      <b-button variant="info" :disabled="!listenersStarted" @click="sendNotification"><span class="font-size">Send Test Notification</span></b-button>
     </div>
   </div>
 </template>
@@ -20,100 +14,83 @@
 <script>
   var axios = require('axios');
   export default {
-    async fetch() {
-      this.startListener();
-      this.requestPermission()
-      this.getIdToken();
+    data() {
+      return {
+        listenersStarted: false,
+        idToken: ''
+      }
     },
     methods: {
-      showdata() {
-        this.$fetch()
+      async startListeners() {
+        await this.startOnMessageListener()
+        await this.startTokenRefreshListener()
+        await this.requestPermission()
+        await this.getIdToken()
+        this.listenersStarted = true
       },
-      async startListener() {
+      startOnMessageListener() {
         try {
           this.$fire.messaging.onMessage((payload) => {
-            console.info('Message received. ', payload)
+            console.info('Message received : ', payload)
           })
+        } catch (e) {
+          console.error('Error : ', e)
+        }
+      },
+      startTokenRefreshListener() {
+        try {
           this.$fire.messaging.onTokenRefresh(async () => {
             try {
-              const refreshedToken = await this.$fire.messaging.getToken()
+              await this.$fire.messaging.getToken()
             } catch (e) {
-              console.error('Unable to retrieve refreshed token ', e)
+              console.error('Error : ', e)
             }
           })
         } catch (e) {
-          console.error(e)
+          console.error('Error : ', e)
         }
       },
       async requestPermission() {
         try {
-          await Notification.requestPermission()
+          const permission = await Notification.requestPermission()
+          console.log(permission);
         } catch (e) {
-          console.error(e)
+          console.error('Error : ', e)
         }
       },
       async getIdToken() {
         try {
-          var currentToken = await this.$fire.messaging.getToken()
-          this.subscribe(currentToken, 'your-topic')
+          this.idToken = await this.$fire.messaging.getToken()
+          console.log(this.idToken);
         } catch (e) {
-          console.error('An error occurred while retrieving token. ', e)
+          console.error('Error : ', e)
         }
       },
-      async subscribe(token, topic) {
-        var data = { "to": "/topics/" + topic, "registration_tokens": [token] };
-        var config = {
-          method: 'post',
-          url: 'https://iid.googleapis.com/iid/v1:batchAdd',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'key=<Your-Key>'
-          },
-          data: data
-        };
-        await axios(config);
+      async sendNotification(){
+        try {
+          var data = { "to": this.idToken, "notification": {"body":"Created by Ade Putra Prima Suhendri", "title":"Welcome to NUXT FCM"}, "data": {"body":"Created by Ade Putra Prima Suhendri", "title":"Welcome to NUXT FCM"} };
+          var config = {
+            method: 'post',
+            url: 'https://fcm.googleapis.com/fcm/send',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'key=<your-key>'
+            },
+            data: data
+          };
+          await axios(config).then(res=>console.log("Success : ", res));
+        } catch (e) {
+          console.error('Error : ', e)
+        }
       }
     },
   }
 </script>
-
 <style>
-  .container {
-    margin: 0 auto;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
+  .icon-size{
+    font-size: 14px;
   }
-
-  .title {
-    font-family:
-      'Quicksand',
-      'Source Sans Pro',
-      -apple-system,
-      BlinkMacSystemFont,
-      'Segoe UI',
-      Roboto,
-      'Helvetica Neue',
-      Arial,
-      sans-serif;
-    display: block;
-    font-weight: 300;
-    font-size: 100px;
-    color: #35495e;
-    letter-spacing: 1px;
-  }
-
-  .subtitle {
-    font-weight: 300;
-    font-size: 42px;
-    color: #526488;
-    word-spacing: 5px;
-    padding-bottom: 15px;
-  }
-
-  .links {
-    padding-top: 15px;
+  .font-size{
+    font-size: 14px;
   }
 </style>

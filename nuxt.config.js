@@ -71,7 +71,7 @@ export default {
         url: 'https://localhost:3000'
       }
     ],
-    fcmPublicVapidKey: '<Public-Key>' // OPTIONAL : Sets vapid key for FCM after initialization
+    fcmPublicVapidKey: '<public-key>' // OPTIONAL : Sets vapid key for FCM after initialization
   }, 
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
